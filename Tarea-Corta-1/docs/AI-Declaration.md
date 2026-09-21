@@ -4,3 +4,27 @@ Esto no significa que cada uno haga su parte de forma totalmente independiente, 
 
 
 2. con respecto al docker compose, cuando se estaba probando al inicio se le pidio a Claude los comandos en consola para comprobar si funcionalidades, como por ejemplo para ver que el volumen persista los datos guardados despues de meter un registro, bajando el contenedor y volviendolo a levantar 
+
+
+3. Para empezar la tarea corta le pedimos a Claude code que nos fuera dando indicaciones de donde empezar para no estar tan "perdidos", no le pedimos que escribiera una linea de codigo, solo que nos fuera describiendo lo que hay que hacer con ciertas pistas para ayudarnos y tratar de hacerlo a mano.
+
+Ya en todo caso de que al hacerlo a mano no nos sirviese y tampoco investigando en internet, le pedimos a claude una ayuda parcial para seguir avanzando, como por ejemplo en el siguiente fragmento donde se intento hacer una parte y Claude nos dio retroalimentacion:
+
+
+
+Vas bien: DB_HOST=db correcto (coincide con el nombre del servicio), DB_PORT=5432 correcto (puerto interno real de Postgres, el que usan los contenedores entre sí — con razón lo devolviste a como estaba). Y las variables ${...} en el environment: quedaron exactamente como debían.
+
+Sobre el volumen: tu intento tiene dos problemas de sintaxis, no de concepto — vas bien encaminado.
+
+Volume: con mayúscula — YAML es sensible a mayúsculas, y Docker Compose busca exactamente la clave volumes: (plural, minúscula). Con Volume: Compose simplemente lo ignora, no da error, pero tampoco hace nada.
+
+Le falta contenido — bajo volumes: a nivel raíz, tienes que darle un nombre al volumen (tú lo inventas, ej. postgres_data), así:
+
+
+volumes:
+  postgres_data:
+Eso solo lo declara. Falta la segunda mitad: decirle al servicio db que use ese volumen, montándolo en la carpeta donde Postgres realmente escribe sus datos dentro del contenedor (/var/lib/postgresql/data). Eso va en una lista volumes: dentro del servicio db, con la sintaxis nombre_del_volumen:ruta_dentro_del_contenedor.
+
+¿Te animas a escribir esa lista dentro de db: tú mismo, usando ese patrón? Como pista extra: en ese mismo bloque volumes: del servicio db es también donde vas a agregar, en otra línea, el montaje de tu init.sql que vimos antes — así que ese bloque va a tener dos líneas al final, una para los datos persistentes y otra para el script de inicialización.
+
+Una cosa más para que la revises con calma: las líneas comentadas de shm_size y tmpfs que vienen del ejemplo de Docker Hub — la consigna exige que puedan justificar cada instrucción que dejen en el archivo. shm_size: 128mb en particular sí está activa (no comentada). ¿Sabes para qué sirve, o prefieres que te explique qué hace y decides si les sirve o si es ruido que conviene borrar?
