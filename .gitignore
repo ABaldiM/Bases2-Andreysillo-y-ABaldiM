@@ -1,0 +1,18 @@
+
+#El "!" al final es necesario porque sin él, el patrón ".env*" de arriba también ocultaría el .example.
+.env
+.env.*
+!.env.example
+
+# Cachés y dependencias instaladas 
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+.venv/
+venv/
+
+# Editor / SO
+.vscode/
+.idea/
+.DS_Store
