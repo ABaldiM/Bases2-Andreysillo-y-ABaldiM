@@ -5,6 +5,8 @@ services:
   db:
     # Imagen oficial de Postgres desde Docker Hub, no usamos Dockerfile propio
     image: postgres:16
+    ports:
+      - "5432:5432" # mapea el puerto 5432 del contenedor al mismo puerto en la compu host
 
     # Si el contenedor se cae o la compu se reinicia, Docker intenta levantarlo de nuevo 
     restart: always
