@@ -10,7 +10,6 @@ proceso de gunicorn, y piden tokens reales al Keycloak real
 from __future__ import annotations
 
 import os
-import uuid
 
 import pytest
 import requests
@@ -92,13 +91,13 @@ def headers_sin_rol(token_sin_rol: str) -> dict:
 
 @pytest.fixture()
 def reserva_valida() -> dict:
-    """Payload válido para crear una reserva, según el contrato de
-    models.py (nombre, email, fecha, cantidad). El email es único por
-    test (uuid) para no chocar entre tests que corren contra la misma
-    base de datos real."""
+    """Payload válido para crear una reserva, según el contrato actual de
+    models.py (nombre, fecha, hora, cantidad -- coincide con las columnas
+    reales de la tabla "reserva" en db/init.sql: nombre_cliente, fecha,
+    hora, cantidad_personas)."""
     return {
         "nombre": "Cliente de prueba",
-        "email": f"test-{uuid.uuid4().hex[:8]}@integracion.local",
         "fecha": "2026-12-24",
+        "hora": "20:00",
         "cantidad": 4,
     }
