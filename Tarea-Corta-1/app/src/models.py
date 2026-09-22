@@ -12,7 +12,6 @@ from datetime import date
 from typing import Any, Optional
 
 NOMBRE_MAX = 100
-EMAIL_MAX = 254
 CANTIDAD_MIN = 1
 CANTIDAD_MAX = 50
 
@@ -34,15 +33,6 @@ def _validar_nombre(valor: Any) -> str:
     valor = valor.strip()
     if len(valor) > NOMBRE_MAX:
         raise ValueError(f"no puede superar {NOMBRE_MAX} caracteres")
-    return valor
-
-# Regla para validar email
-def _validar_email(valor: Any) -> str:
-    if not isinstance(valor, str) or not valor.strip():
-        raise ValueError("es obligatorio y debe ser texto")
-    valor = valor.strip()
-    if len(valor) > EMAIL_MAX or not _EMAIL_RE.match(valor):
-        raise ValueError("no tiene un formato de correo válido")
     return valor
 
 # Regla para validar fecha
@@ -69,7 +59,6 @@ def _validar_cantidad(valor: Any) -> int:
 
 _VALIDADORES = {
     "nombre": _validar_nombre,
-    "email": _validar_email,
     "fecha": _validar_fecha,
     "cantidad": _validar_cantidad,
 }
@@ -79,7 +68,6 @@ _VALIDADORES = {
 class Reserva:
     # Atributos de la clase
     nombre: str
-    email: str
     fecha: date
     cantidad: int
     id: Optional[int] = None # Es opcional y nulo hasta que Postgres lo añade.
@@ -118,7 +106,6 @@ class Reserva:
         return {
             "id": self.id,
             "nombre": self.nombre,
-            "email": self.email,
             "fecha": self.fecha.isoformat(),
             "cantidad": self.cantidad,
         }
