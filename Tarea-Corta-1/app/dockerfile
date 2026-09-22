@@ -1,20 +1,54 @@
+# Imagen base oficial de Python, variante "slim" (Debian mínimo).
+# Descartamos alpine que usa ibrerías adicionales con partes en C
+# que terminarían compilándose desde cero dentro de la imagen
+# (necesitando gcc, libpq-dev, etc.) — justo lo contrario de "instalar
+# únicamente lo necesario" que pide el enunciado
 FROM python:3.13-slim
+
+# Carpeta de trabajo dentro del contenedor. Todo lo que sigue (COPY, RUN,
+# CMD/ENTRYPOINT) se resuelve de forma relativa a esta carpeta.
 WORKDIR /app
 
 
+# Copiamos SOLO el archivo de dependencias primero, antes que el código.
+# Basicamente aprovecha el cacheo de capas de Docker para reutilizar la capa ya armada en vez de
+# reinstalar todo cada vez que solo cambia el código durante el desarrollo
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Recién acá copiamos el código de la app.
 COPY src ./
+# aqui los tests viajan
+# dentro de la imagen para poder correrlos con "docker compose exec app
+# pytest" sin instalar nada extra en la máquina del evaluador.
 COPY tests ./tests
 
+# El script que espera a que Postgres esté listo antes de arrancar la app
+# (entrypoint.sh). Se copia y se le da permiso de ejecución TODAVÍA como
+# root: después de "USER app" el usuario sin privilegios no sería dueño del
+# archivo y no podría cambiarle los permisos.
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+# Creamos un usuario sin privilegios y cambiamos a él para el resto de la
+# ejecución, para que el proceso de la app nunca corra como root dentro del
+# contenedor 
+
+# aclaracion: Todo lo de arriba (pip
+# install, chmod) sí corrió como root porque necesita escribir en carpetas
+# del sistema o cambiar permisos de un archivo que todavía no es del
+# usuario "app".
 RUN useradd app
 USER app
 
+# Documenta que la app escucha en el 8080 dentro del contenedor. No abre
+# el puerto hacia afuera por sí solo — eso lo hace el "ports:" del compose
 EXPOSE 8080
 
+# ENTRYPOINT es lo que SIEMPRE se ejecuta al arrancar el contenedor.
+# CMD son los argumentos por defecto que le llegan a ese ENTRYPOINT como
+# "$@". entrypoint.sh espera a que Postgres acepte conexiones y al final
+# hace "exec "$@"", que termina lanzando exactamente este comando de
+# gunicorn
 ENTRYPOINT ["/entrypoint.sh"]
 CMD ["gunicorn","-b", "0.0.0.0:8080", "main:app"]

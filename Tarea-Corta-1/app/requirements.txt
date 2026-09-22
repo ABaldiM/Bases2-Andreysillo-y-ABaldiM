@@ -1,7 +1,11 @@
-flask==3.0.3
-psycopg[binary]==3.2.3
-PyJWT==2.9.0
-cryptography==43.0.1
-requests==2.32.3
-pytest==8.3.3
-gunicorn==21.2.0
+# Versiones fijas (no rangos con >=) para que el build sea reproducible:
+# el mismo requirements.txt instala exactamente lo mismo hoy, dentro de un
+# año, o en la máquina de quien evalúe esto.
+
+flask==3.0.3             # framework HTTP del servicio
+psycopg[binary]==3.2.3   # driver de Postgres (variante binaria: wheels ya compiladas, no compila nada durante el build)
+PyJWT==2.9.0              # valida la firma y los claims de los JWT que emite Keycloak
+cryptography==43.0.1     # backend criptográfico que usa PyJWT para verificar firmas RS256
+requests==2.32.3         # cliente HTTP: trae el JWKS de Keycloak y golpea los endpoints en los tests de integración
+pytest==8.3.3            # framework de tests (unitarios e integración)
+gunicorn==21.2.0         # servidor WSGI real para correr Flask dentro del contenedor
