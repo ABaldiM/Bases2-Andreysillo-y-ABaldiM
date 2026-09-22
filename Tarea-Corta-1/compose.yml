@@ -33,15 +33,46 @@ services:
       #    Esto hace que todas las tablas y demas se hagan automaticamente sin que el evaluador tenga que cargarla a mano.
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
+
+  # Proveedor de identidad externo. No implementamos login ni firma de
+  # tokens a mano: delegamos toda la autenticación en este contenedor, y nosotros nada mas lo configuramos
+  # (ver keycloak/realm-export.json)
+  # y a validar contra él los tokens que la app recibe.
   keycloak:
+    # Imagen oficial de Keycloak, versión fijada para reproducibilidad
     image: quay.io/keycloak/keycloak:21.1.1
+
+    # Credenciales del usuario admin de la CONSOLA de Keycloak (no tienen
+    # nada que ver con los usuarios/roles de nuestro realm "bases2", esos
+    # ya vienen definidos dentro de realm-export.json). Igual que con.
     environment:
       KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
       KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-    command: start-dev
+
+
+    # "start-dev" arranca Keycloak en modo desarrollo (sin exigir HTTPS ni
+    # una base de datos externa) -- razonable para el alcance de esta tarea,
+    # documentado como simplificación en el README. "--import-realm" es lo
+    # que le dice a Keycloak que revise la carpeta de import (ver "volumes"
+    # abajo) y cargue solo, al arrancar, el realm/client/roles/usuarios que
+    # dejamos definidos -- sin esto, el archivo montado se ignoraría.
+    command: start-dev --import-realm
+
+    # host:contenedor. Adentro, Keycloak siempre escucha en su puerto por
+    # defecto (8080), el izquierdo es
+    # 8090 y no 8080 a propósito: el 8080 del host lo va a usar el servicio
+    # "app" y por ende chocarian 
     ports:
       - "8090:8080"
+
     restart: always
+
+    # BIND MOUNT del archivo real de nuestro proyecto (./keycloak/realm-export.json)
+    # hacia la carpeta que Keycloak revisa al arrancar con --import-realm.
+    # Mismo patrón que usamos con init.sql en el servicio "db": el evaluador
+    # nunca tiene que configurar el realm a mano desde la consola.
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
 
 # Declaración del volumen nombrado que usamos arriba, esto va al mismo nivel que el contenedor de la db
 volumes:
