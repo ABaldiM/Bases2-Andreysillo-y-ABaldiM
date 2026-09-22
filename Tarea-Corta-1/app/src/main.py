@@ -1,4 +1,4 @@
-from flask import Flask, request, flask
+from flask import Flask, request
 from models import Reserva, ValidationError
 
 app = Flask(__name__)
