@@ -1,0 +1,60 @@
+{
+  "realm": "bases2",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Rol requerido para crear, actualizar y eliminar recursos protegidos"
+      }
+    ]
+  },
+  "users": [
+    {
+      "username": "admin-tester",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin-tester@bases2.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "AdminTester123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["admin"]
+    },
+    {
+      "username": "sin-rol-tester",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "sin-rol-tester@bases2.local",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "SinRolTester123!",
+          "temporary": false
+        }
+      ],
+      "realmRoles": []
+    }
+  ],
+  "clients": [
+    {
+      "clientId": "comidas-api",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "comidas-api-secret",
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "redirectUris": [],
+      "webOrigins": []
+    }
+  ]
+}
