@@ -39,6 +39,15 @@ RUN chmod +x /entrypoint.sh
 # del sistema o cambiar permisos de un archivo que todavía no es del
 # usuario "app".
 RUN useradd app
+
+# Hasta acá, todo lo copiado a /app (código, tests, requirements.txt) quedó
+# con dueño "root", poorque COPY corre como el usuario activo en ese momento del
+# build, y todavía no habíamos cambiado a "app", entonce sin esto de abajo el usuario
+# "app" no podría escribir NADA dentro de /app (ej. la carpeta de caché que
+# arma pytest solo, .pytest_cache) porque no sería su dueño. Se lo damos
+# explícitamente antes de bajarle los privilegios
+RUN chown -R app:app /app
+
 USER app
 
 # Documenta que la app escucha en el 8080 dentro del contenedor. No abre
