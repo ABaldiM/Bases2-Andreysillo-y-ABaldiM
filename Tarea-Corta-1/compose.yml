@@ -33,6 +33,11 @@ services:
       #    Esto hace que todas las tablas y demas se hagan automaticamente sin que el evaluador tenga que cargarla a mano.
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   # Proveedor de identidad externo. No implementamos login ni firma de
   # tokens a mano: delegamos toda la autenticación en este contenedor, y nosotros nada mas lo configuramos
@@ -56,7 +61,7 @@ services:
     # que le dice a Keycloak que revise la carpeta de import (ver "volumes"
     # abajo) y cargue solo, al arrancar, el realm/client/roles/usuarios que
     # dejamos definidos -- sin esto, el archivo montado se ignoraría.
-    command: start-dev --import-realm
+    command: start-dev --import-realm --health-enabled=true
 
     # host:contenedor. Adentro, Keycloak siempre escucha en su puerto por
     # defecto (8080), el izquierdo es
@@ -73,6 +78,65 @@ services:
     # nunca tiene que configurar el realm a mano desde la consola.
     volumes:
       - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm-export.json
+
+  
+    # Esta imagen no trae curl/wget, así que no podemos usar el healthcheck
+    # típico con curl. En vez de eso usamos /dev/tcp de bash (abre una
+    # conexión TCP real) para mandar un GET a mano a /health/ready y
+    # buscar "UP" en la respuesta. Ese endpoint solo existe gracias a
+    # "--health-enabled=true" en el command de arriba.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >
+          exec 3<>/dev/tcp/127.0.0.1/8080 &&
+          printf 'GET /health/ready HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n' >&3 &&
+          grep -q '"status": "UP"' <&3
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+
+
+  # Nuestro propio servicio HTTP, construido con el Dockerfile de app/ (no
+  # usamos una imagen ya armada de terceros para este coso)
+  app:
+    build: ./app
+    ports:
+      - "8080:8080"
+
+    # Igual que con Keycloak, esta imagen (python:slim) tampoco trae curl
+    # instalado. Acá sí tenemos python disponible, así que usamos la
+    # librería estándar (urllib) para pegarle a /health -- la ruta de
+    # liveness, que responde sin tocar la base, tal como pide el enunciado
+    # para el healthcheck del propio contenedor de la app. Si la respuesta
+    # no es 2xx o la conexión falla, urlopen lanza una excepción, python
+    # termina con código distinto de 0, y Docker marca el healthcheck como
+    # fallido -- no hace falta parsear nada a mano como con Keycloak.
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+
+    # No alcanza con que db/keycloak existan como contenedores: tienen que
+    # estar "healthy" (sus healthchecks en verde) antes de que Compose
+    # intente levantar la app. Esta es la primera capa de arranque
+    # ordenado; entrypoint.sh (con sus reintentos) es la segunda, de
+    # respaldo, por si "healthy" no fuera suficiente garantía en la práctica.
+    depends_on:
+      db:
+        condition: service_healthy
+      keycloak:
+        condition: service_healthy
+
+    env_file:
+      - .env
 
 # Declaración del volumen nombrado que usamos arriba, esto va al mismo nivel que el contenedor de la db
 volumes:
