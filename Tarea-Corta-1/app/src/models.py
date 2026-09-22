@@ -8,23 +8,23 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, time
 from typing import Any, Optional
 
 NOMBRE_MAX = 100
 CANTIDAD_MIN = 1
 CANTIDAD_MAX = 50
 
-_EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 _FECHA_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+_HORA_RE = re.compile(r"^\d{2}:\d{2}(:\d{2})?$") # Acepta HH:MM o HH:MM:SS
 
 
 class ValidationError(Exception):
     """Error de validación. `errores` mapea campo -> mensaje."""
-
     def __init__(self, errores: dict[str, str]):
         self.errores = errores
         super().__init__(errores)
+
 
 # Regla para validar nombre
 def _validar_nombre(valor: Any) -> str:
@@ -35,9 +35,9 @@ def _validar_nombre(valor: Any) -> str:
         raise ValueError(f"no puede superar {NOMBRE_MAX} caracteres")
     return valor
 
+
 # Regla para validar fecha
 def _validar_fecha(valor: Any) -> date:
-    # Acepta un date (p. ej. el que devuelve PostgreSQL) o un texto YYYY-MM-DD.
     if isinstance(valor, date):
         return valor
     if not isinstance(valor, str) or not _FECHA_RE.match(valor.strip()):
@@ -47,9 +47,22 @@ def _validar_fecha(valor: Any) -> date:
     except ValueError:
         raise ValueError("no es una fecha real del calendario")
 
+
+# Regla para validar hora (NUEVO)
+def _validar_hora(valor: Any) -> time:
+    # Si psycopg2 ya lo convirtió a objeto time de Python
+    if isinstance(valor, time):
+        return valor
+    if not isinstance(valor, str) or not _HORA_RE.match(valor.strip()):
+        raise ValueError("debe tener el formato HH:MM o HH:MM:SS")
+    try:
+        return time.fromisoformat(valor.strip())
+    except ValueError:
+        raise ValueError("no es una hora válida")
+
+
 # Regla para validar que la cantidad sea un entero entre 1 y 50
 def _validar_cantidad(valor: Any) -> int:
-    # bool es subclase de int en Python: True no debe pasar como cantidad.
     if isinstance(valor, bool) or not isinstance(valor, int):
         raise ValueError("debe ser un número entero")
     if not CANTIDAD_MIN <= valor <= CANTIDAD_MAX:
@@ -60,6 +73,7 @@ def _validar_cantidad(valor: Any) -> int:
 _VALIDADORES = {
     "nombre": _validar_nombre,
     "fecha": _validar_fecha,
+    "hora": _validar_hora,         
     "cantidad": _validar_cantidad,
 }
 
@@ -69,15 +83,13 @@ class Reserva:
     # Atributos de la clase
     nombre: str
     fecha: date
+    hora: time                     
     cantidad: int
-    id: Optional[int] = None # Es opcional y nulo hasta que Postgres lo añade.
+    id: Optional[int] = None       # Es opcional y nulo hasta que Postgres lo añade.
 
-    # Metodos de la clase
-
-    """
-    Reserva.from_dict(datos) = Validar JSON/Diccionario que recibe y devuelve la reserva, si algo falla, lanza todos los errores
-    a la vez para ver todo lo que esta mal
-    """
+    # ---------------------------------------------------------
+    # 1. PARSEAR DESDE JSON (FRONTEND -> BACKEND)
+    # ---------------------------------------------------------
     @classmethod
     def from_dict(cls, datos: Any, id: Optional[int] = None) -> "Reserva":
         if not isinstance(datos, dict):
@@ -92,20 +104,40 @@ class Reserva:
             try:
                 limpios[campo] = validar(datos[campo])
             except ValueError as exc:
-                errores[campo] = str(exc) # Guarda el error del campo en mal formato o faltante
+                errores[campo] = str(exc)
 
         if errores:
             raise ValidationError(errores)
         return cls(id=id, **limpios)
 
-    """
-    Metodo para pasar de una lista a un JSON/Diccionario
-    
-    """
+    # ---------------------------------------------------------
+    # 2. PARSEAR DESDE POSTGRES (BASE DE DATOS -> BACKEND) (NUEVO)
+    # ---------------------------------------------------------
+    @classmethod
+    def from_db_row(cls, fila: tuple) -> Optional["Reserva"]:
+        """Convierte una tupla de psycopg2 en una instancia de Reserva."""
+        if not fila or fila[0] is None:
+            return None
+        
+        # El orden depende del SELECT en Postgres: 
+        # id(0), nombre_cliente(1), fecha(2), hora(3), cantidad_personas(4), created_at(5)
+        return cls(
+            id=fila[0],
+            nombre=fila[1],
+            fecha=fila[2],
+            hora=fila[3],
+            cantidad=fila[4]
+        )
+
+    # ---------------------------------------------------------
+    # 3. EXPORTAR A JSON (BACKEND -> FRONTEND)
+    # ---------------------------------------------------------
     def to_dict(self) -> dict[str, Any]:
+        """Metodo para pasar del objeto en memoria a un JSON/Diccionario"""
         return {
             "id": self.id,
             "nombre": self.nombre,
             "fecha": self.fecha.isoformat(),
+            "hora": self.hora.isoformat(), # Formatea HH:MM:SS
             "cantidad": self.cantidad,
         }
