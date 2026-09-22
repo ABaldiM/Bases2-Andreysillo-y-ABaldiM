@@ -33,6 +33,16 @@ services:
       #    Esto hace que todas las tablas y demas se hagan automaticamente sin que el evaluador tenga que cargarla a mano.
       - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:21.1.1
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+    command: start-dev
+    ports:
+      - "8090:8080"
+    restart: always
+
 # Declaración del volumen nombrado que usamos arriba, esto va al mismo nivel que el contenedor de la db
 volumes:
   volumen_de_postgres:
