@@ -24,8 +24,8 @@ def test_crear_reserva_valida_devuelve_201_con_id(base_url, headers_admin, reser
 def test_crear_reserva_invalida_devuelve_400(base_url, headers_admin):
     cuerpo_invalido = {
         "nombre": "",
-        "email": "esto-no-es-un-correo",
         "fecha": "fecha-invalida",
+        "hora": "25:99",
         "cantidad": -1,
     }
     r = requests.post(
