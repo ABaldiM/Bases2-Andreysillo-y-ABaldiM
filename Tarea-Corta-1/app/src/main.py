@@ -1,7 +1,7 @@
 from flask import Flask, request
 from models import Reserva, ValidationError
-import psycopg2
-import os
+from auth import requiere_rol
+
 
 app = Flask(__name__)
 
@@ -16,6 +16,7 @@ def get_db_connection():
 
 
 @app.post('/reservas')
+@requiere_rol("admin")
 def crear_reserva():
     request_json = request.get_json(silent=True)  # None si el JSON viene mal formado
 
@@ -58,6 +59,7 @@ def crear_reserva():
 
 
 @app.put("/reservas/<int:id>")
+@requiere_rol("admin")
 def actualizar_reserva(id):
     request_json = request.get_json(silent=True)
 
