@@ -1,7 +1,7 @@
 from flask import Flask, request, flask
 from models import Reserva, ValidationError
 
-app = flask(__name__)
+app = Flask(__name__)
 
 @app.post('/reservas')
 def crear_reserva():
