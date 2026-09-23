@@ -8,13 +8,27 @@ app = Flask(__name__)
 
 def get_db_connection():
     conn = psycopg.connect(
-        host=os.getenv("Server"),
+        host=os.getenv("DB_HOST"),
+        port=os.getenv("DB_PORT"),
         dbname=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD")
     )
     return conn
 
+@app.get("/health")
+def health():
+    return {"status": "ok"}, 200
+
+
+@app.get("/ready")
+def ready():
+    try:
+        conn = get_db_connection()
+        conn.close()
+        return {"status": "ok"}, 200
+    except Exception:
+        return {"status": "no disponible"}, 503
 
 @app.post('/reservas')
 @requiere_rol("admin")
@@ -27,10 +41,12 @@ def crear_reserva():
     except ValidationError as e:
         return {"errores": e.errores}, 400
 
-    conn = get_db_connection()
-    cur = conn.cursor()
+    
 
     try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
         # Se envían los atributos ya validados y "limpios" de la instancia reserva
         cur.execute(
             """
@@ -70,10 +86,11 @@ def actualizar_reserva(id):
     except ValidationError as e:
         return {"errores": e.errores}, 400
     
-    conn = get_db_connection()
-    cur = conn.cursor()
 
     try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
         # Llamamos a la función de PostgreSQL
         cur.execute(
             """
@@ -105,10 +122,11 @@ def actualizar_reserva(id):
 @app.delete("/reservas/<int:id>")
 @requiere_rol("admin")
 def borrar_reserva(id):
-    conn = get_db_connection()
-    cur = conn.cursor()
+    
     
     try:
+        conn = get_db_connection()
+        cur = conn.cursor()
         # IMPORTANTE: (id,) con coma para que sea una tupla válida en Python
         cur.execute("SELECT eliminar_reserva(%s);", (id,))
         
@@ -117,7 +135,7 @@ def borrar_reserva(id):
         conn.commit()
     
         if fue_eliminada:
-            return {"mensaje": "Reserva eliminada correctamente"}, 200
+            return {"mensaje": "Reserva eliminada correctamente"}, 204
         else:
             return {"error": "Reserva no encontrada"}, 404
             
@@ -132,10 +150,11 @@ def borrar_reserva(id):
 
 @app.get("/reservas/<int:id>")
 def filtrado_id(id):
-    conn = get_db_connection()
-    cur = conn.cursor()
+ 
     
     try:
+        conn = get_db_connection()
+        cur = conn.cursor()
         # IMPORTANTE: (id,) con coma
         cur.execute("SELECT * FROM obtener_reserva(%s);", (id,))
         fila = cur.fetchone()
@@ -161,10 +180,12 @@ def listar_o_filtrar_fecha():
     # Obtiene ?fecha=YYYY-MM-DD de la URL, devuelve None si no se envía
     fecha_filtro = request.args.get('fecha') 
     
-    conn = get_db_connection()
-    cur = conn.cursor()
+
     
     try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+
         cur.execute("SELECT * FROM listar_reservas(%s);", (fecha_filtro,))
         filas = cur.fetchall()
         

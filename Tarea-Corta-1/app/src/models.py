@@ -13,7 +13,7 @@ from typing import Any, Optional
 
 NOMBRE_MAX = 100
 CANTIDAD_MIN = 1
-CANTIDAD_MAX = 50
+CANTIDAD_MAX = 20
 
 _FECHA_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _HORA_RE = re.compile(r"^\d{2}:\d{2}(:\d{2})?$") # Acepta HH:MM o HH:MM:SS
