@@ -81,8 +81,8 @@ Los datos de la base de datos residen en el volumen nombrado `volumen_de_postgre
 3. Vuelva a levantar el sistema y lea los datos a través de la ruta de lectura:
    ```bash
    docker compose up -d
-   curl -i http://localhost:8080/reservas
    ```
+   En una herramienta como Postman podemos ver las reservas creadas con la URL http://localhost:8080/reservas/id
 
 Para apagar el sistema y eliminar definitivamente los volúmenes y la red:
 
