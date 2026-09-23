@@ -9,6 +9,7 @@ FROM python:3.13-slim
 # CMD/ENTRYPOINT) se resuelve de forma relativa a esta carpeta.
 WORKDIR /app
 
+ENV PYTHONPATH=/app
 
 # Copiamos SOLO el archivo de dependencias primero, antes que el código.
 # Basicamente aprovecha el cacheo de capas de Docker para reutilizar la capa ya armada en vez de
