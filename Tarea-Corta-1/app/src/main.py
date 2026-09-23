@@ -1,14 +1,15 @@
 from flask import Flask, request
 from models import Reserva, ValidationError
 from auth import requiere_rol
-
+import psycopg
+import os
 
 app = Flask(__name__)
 
 def get_db_connection():
-    conn = psycopg2.connect(
+    conn = psycopg.connect(
         host=os.getenv("Server"),
-        database=os.getenv("POSTGRES_DB"),
+        dbname=os.getenv("POSTGRES_DB"),
         user=os.getenv("POSTGRES_USER"),
         password=os.getenv("POSTGRES_PASSWORD")
     )
@@ -102,6 +103,7 @@ def actualizar_reserva(id):
 
 
 @app.delete("/reservas/<int:id>")
+@requiere_rol("admin")
 def borrar_reserva(id):
     conn = get_db_connection()
     cur = conn.cursor()

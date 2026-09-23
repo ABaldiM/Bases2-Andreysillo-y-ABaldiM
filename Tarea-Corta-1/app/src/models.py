@@ -111,7 +111,7 @@ class Reserva:
         return cls(id=id, **limpios)
 
     # ---------------------------------------------------------
-    # 2. PARSEAR DESDE POSTGRES (BASE DE DATOS -> BACKEND) (NUEVO)
+    # 2. PARSEAR DESDE POSTGRES (BASE DE DATOS -> BACKEND)
     # ---------------------------------------------------------
     @classmethod
     def from_db_row(cls, fila: tuple) -> Optional["Reserva"]:
