@@ -1,4 +1,7 @@
 # Sistema de Gestión de Reservas - Tarea Corta 1
+# Video Demostración: https://estudianteccr-my.sharepoint.com/:v:/g/personal/a_baldi_1_estudiantec_cr/IQCZ8YpRa_A5T40j8n-4ECY3AbeARAmcVKuoltvKCYPbDQY?e=uRsnln
+
+
 
 Este repositorio contiene la contenerización de un servicio HTTP para la gestión de reservas de un restaurante, orquestado mediante Docker Compose. El sistema incluye la aplicación en Python, una base de datos PostgreSQL y un proveedor de identidad (Keycloak).
 
